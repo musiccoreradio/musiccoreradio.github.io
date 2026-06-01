@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Промо События</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            background-color: #000000; 
+            color: #ffffff;
+            font-family: 'Courier New', Courier, monospace; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            overflow: hidden;
+        }
+
+
+        #overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 1); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10;
+            cursor: pointer;
+            transition: opacity 0.5s;
+        }
+        
+        #overlay h2 {
+            font-size: 2rem;
+            text-transform: lowercase; 
+            letter-spacing: 5px;
+            color: #fff;
+            
+            text-shadow: 0 0 3px #fff, 0 0 8px rgba(255, 255, 255, 0.5);
+            
+            
+            animation: reveal-glitch-loop 4s infinite;
+        }
+
+        
+        @keyframes reveal-glitch-loop {
+            0%   { clip-path: inset(0 100% 0 0); opacity: 1; }
+            40%  { clip-path: inset(0 0 0 0); opacity: 1; } /* Прорисовка */
+            
+            55%  { clip-path: inset(0 0 0 0); opacity: 1; } /* Пауза */
+
+            /* Глитч */
+            57%  { opacity: 0; }
+            60%  { opacity: 1; }
+            62%  { opacity: 0; }
+            65%  { opacity: 1; }
+            67%  { opacity: 0; }
+            70%  { opacity: 1; }
+            72%  { opacity: 0; }
+
+            
+            73%  { opacity: 0; clip-path: inset(0 100% 0 0); }
+            100% { opacity: 0; clip-path: inset(0 100% 0 0); }
+        }
+
+        .glow {
+            text-shadow: 0 0 2px #fff, 0 0 8px rgba(255, 255, 255, 0.4);
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            font-family: 'Segoe UI', sans-serif;
+            font-weight: 300;
+            letter-spacing: 5px;
+            text-transform: lowercase; 
+        }
+
+        .timer {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        .time-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 100px;
+        }
+
+        .time-box span {
+            font-size: 5rem;
+            font-weight: bold;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .time-box p {
+            margin: 10px 0 0;
+            font-size: 1.2rem;
+            text-transform: lowercase; 
+            letter-spacing: 3px;
+        }
+
+        
+        video {
+            width: 100%;
+            max-width: 800px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+            outline: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="overlay">
+        <h2>[ click to continue ]</h2>
+    </div>
+
+    <div class="container">
+        <div class="timer glow" id="timer">
+            <div class="time-box"><span id="days">00</span><p>days</p></div>
+            <div class="time-box"><span id="hours">00</span><p>hours</p></div>
+            <div class="time-box"><span id="minutes">00</span><p>minutes</p></div>
+            <div class="time-box"><span id="seconds">00</span><p>seconds</p></div>
+        </div>
+    </div>
+
+    <script>
+        const countDownDate = new Date("Jun 22, 2026 0:0:0").getTime();
+        
+        let audioCtx;
+        let isTimerRunning = false;
+        let timerInterval; 
+
+        function playTickSound() {
+            if (!audioCtx) return;
+            const oscillator = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            oscillator.type = 'sine';
+            oscillator.frequency.setValueAtTime(1000, audioCtx.currentTime); 
+            
+            gainNode.gain.setValueAtTime(0.015, audioCtx.currentTime); 
+            gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.05);
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            oscillator.start();
+            oscillator.stop(audioCtx.currentTime + 0.05);
+        }
+
+        document.getElementById('overlay').addEventListener('click', function() {
+            this.style.opacity = '0';
+            setTimeout(() => this.style.display = 'none', 500);
+            
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtx = new AudioContext();
+            
+            if (!isTimerRunning) {
+                isTimerRunning = true;
+                updateTimer(); 
+                // Сохраняем интервал, чтобы потом его остановить
+                timerInterval = setInterval(updateTimer, 1000); 
+            }
+        });
+
+        function updateTimer() {
+            const now = new Date().getTime();
+            const distance = countDownDate - now;
+
+            const days = Math.floor(distance / (1000 * 60 * 60 * 24));
+            const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+            const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+            if (distance >= 0) {
+                document.getElementById("days").innerHTML = days < 10 ? "0" + days : days;
+                document.getElementById("hours").innerHTML = hours < 10 ? "0" + hours : hours;
+                document.getElementById("minutes").innerHTML = minutes < 10 ? "0" + minutes : minutes;
+                document.getElementById("seconds").innerHTML = seconds < 10 ? "0" + seconds : seconds;
+                playTickSound();
+            } else {
+                // ОСТАНАВЛИВАЕМ ТАЙМЕР
+                clearInterval(timerInterval); 
+                
+                // ЗАПУСКАЕМ ВИДЕО 
+                document.getElementById("timer").innerHTML = `
+                    <video autoplay controls>
+                        <source src="ТВОЯ_ССЫЛКА_НА_ВИДЕО.mp4" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>
