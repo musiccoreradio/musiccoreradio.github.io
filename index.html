@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Промо События</title>
+    <title>music core radio</title>
     <style>
         body, html {
             height: 100%;
@@ -16,9 +16,12 @@
             justify-content: center;
             text-align: center;
             overflow: hidden;
+            /* Защита от случайного выделения текста на смартфонах при тапе */
+            -webkit-user-select: none;
+            user-select: none;
         }
 
-
+        /* Стартовый экран */
         #overlay {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -29,28 +32,23 @@
             z-index: 10;
             cursor: pointer;
             transition: opacity 0.5s;
+            padding: 20px;
+            box-sizing: border-box;
         }
         
         #overlay h2 {
-            font-size: 2rem;
+            font-size: 1.8rem; /* Чуть уменьшили базовый размер для мобильных */
             text-transform: lowercase; 
             letter-spacing: 5px;
             color: #fff;
-            
             text-shadow: 0 0 3px #fff, 0 0 8px rgba(255, 255, 255, 0.5);
-            
-            
             animation: reveal-glitch-loop 4s infinite;
         }
 
-        
         @keyframes reveal-glitch-loop {
             0%   { clip-path: inset(0 100% 0 0); opacity: 1; }
-            40%  { clip-path: inset(0 0 0 0); opacity: 1; } /* Прорисовка */
-            
-            55%  { clip-path: inset(0 0 0 0); opacity: 1; } /* Пауза */
-
-            /* Глитч */
+            40%  { clip-path: inset(0 0 0 0); opacity: 1; } 
+            55%  { clip-path: inset(0 0 0 0); opacity: 1; } 
             57%  { opacity: 0; }
             60%  { opacity: 1; }
             62%  { opacity: 0; }
@@ -58,29 +56,25 @@
             67%  { opacity: 0; }
             70%  { opacity: 1; }
             72%  { opacity: 0; }
-
-            
             73%  { opacity: 0; clip-path: inset(0 100% 0 0); }
             100% { opacity: 0; clip-path: inset(0 100% 0 0); }
+        }
+
+        .container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
         }
 
         .glow {
             text-shadow: 0 0 2px #fff, 0 0 8px rgba(255, 255, 255, 0.4);
         }
 
-        h1 {
-            font-size: 2rem;
-            margin-bottom: 40px;
-            font-family: 'Segoe UI', sans-serif;
-            font-weight: 300;
-            letter-spacing: 5px;
-            text-transform: lowercase; 
-        }
-
         .timer {
             display: flex;
             gap: 30px;
             justify-content: center;
+            flex-wrap: wrap; /* Разрешаем перенос блоков на мобильных */
         }
 
         .time-box {
@@ -97,19 +91,56 @@
         }
 
         .time-box p {
-            margin: 10px 0 0;
-            font-size: 1.2rem;
+            margin: 5px 0 0;
+            font-size: 1.1rem;
             text-transform: lowercase; 
             letter-spacing: 3px;
         }
 
-        
-        video {
+        /* Адаптивный плеер для видео */
+        .video-container {
             width: 100%;
             max-width: 800px;
+            margin: 0 auto;
+            padding: 0 10px;
+            box-sizing: border-box;
+        }
+
+        video, iframe {
+            width: 100%;
+            height: auto;
+            aspect-ratio: 16 / 9; /* Удерживает правильные пропорции на любом экране */
             border-radius: 10px;
             box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
             outline: none;
+            border: none;
+        }
+
+       
+        @media (max-width: 600px) {
+            #overlay h2 {
+                font-size: 1.3rem; /* Уменьшаем текст "click to continue" чтобы не переносился */
+                letter-spacing: 3px;
+            }
+
+            .timer {
+                gap: 20px 40px; /* Расстояние между блоками плиткой: 20px по вертикали, 40px по горизонтали */
+                max-width: 300px; /* Ограничиваем ширину, чтобы блоки встали ровно 2х2 */
+                margin: 0 auto;
+            }
+
+            .time-box {
+                min-width: 110px;
+            }
+
+            .time-box span {
+                font-size: 3.5rem; /* Уменьшаем огромные цифры, чтобы они влезали на экран смартфона */
+            }
+
+            .time-box p {
+                font-size: 0.9rem; /* Чуть уменьшаем подписи (days, hours...) */
+                letter-spacing: 2px;
+            }
         }
     </style>
 </head>
@@ -129,6 +160,7 @@
     </div>
 
     <script>
+ 
         const countDownDate = new Date("Jun 22, 2026 0:0:0").getTime();
         
         let audioCtx;
@@ -163,7 +195,6 @@
             if (!isTimerRunning) {
                 isTimerRunning = true;
                 updateTimer(); 
-                // Сохраняем интервал, чтобы потом его остановить
                 timerInterval = setInterval(updateTimer, 1000); 
             }
         });
@@ -184,15 +215,19 @@
                 document.getElementById("seconds").innerHTML = seconds < 10 ? "0" + seconds : seconds;
                 playTickSound();
             } else {
-                // ОСТАНАВЛИВАЕМ ТАЙМЕР
                 clearInterval(timerInterval); 
                 
-                // ЗАПУСКАЕМ ВИДЕО 
+                
+                const secretLink = "ТВОЙ_BASE64_КОД_ЗДЕСЬ";
+                const realLink = atob(secretLink);
+
                 document.getElementById("timer").innerHTML = `
-                    <video autoplay controls>
-                        <source src="ТВОЯ_ССЫЛКА_НА_ВИДЕО.mp4" type="video/mp4">
-                        Ваш браузер не поддерживает видео.
-                    </video>
+                    <div class="video-container">
+                        <video autoplay controls playsinline>
+                            <source src="${realLink}" type="video/mp4">
+                            Ваш браузер не поддерживает видео.
+                        </video>
+                    </div>
                 `;
             }
         }
