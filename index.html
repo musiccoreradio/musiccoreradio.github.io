@@ -16,7 +16,6 @@
             justify-content: center;
             text-align: center;
             overflow: hidden;
-            /* Защита от случайного выделения текста на смартфонах при тапе */
             -webkit-user-select: none;
             user-select: none;
         }
@@ -37,7 +36,7 @@
         }
         
         #overlay h2 {
-            font-size: 1.8rem; /* Чуть уменьшили базовый размер для мобильных */
+            font-size: 1.8rem; 
             text-transform: lowercase; 
             letter-spacing: 5px;
             color: #fff;
@@ -74,7 +73,7 @@
             display: flex;
             gap: 30px;
             justify-content: center;
-            flex-wrap: wrap; /* Разрешаем перенос блоков на мобильных */
+            flex-wrap: wrap; 
         }
 
         .time-box {
@@ -97,35 +96,21 @@
             letter-spacing: 3px;
         }
 
-        /* Адаптивный плеер для видео */
-        .video-container {
-            width: 100%;
-            max-width: 800px;
+        /* Эквалайзер */
+        canvas {
+            display: block;
             margin: 0 auto;
-            padding: 0 10px;
-            box-sizing: border-box;
         }
 
-        video, iframe {
-            width: 100%;
-            height: auto;
-            aspect-ratio: 16 / 9; /* Удерживает правильные пропорции на любом экране */
-            border-radius: 10px;
-            box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-            outline: none;
-            border: none;
-        }
-
-       
         @media (max-width: 600px) {
             #overlay h2 {
-                font-size: 1.3rem; /* Уменьшаем текст "click to continue" чтобы не переносился */
+                font-size: 1.3rem; 
                 letter-spacing: 3px;
             }
 
             .timer {
-                gap: 20px 40px; /* Расстояние между блоками плиткой: 20px по вертикали, 40px по горизонтали */
-                max-width: 300px; /* Ограничиваем ширину, чтобы блоки встали ровно 2х2 */
+                gap: 20px 40px; 
+                max-width: 300px; 
                 margin: 0 auto;
             }
 
@@ -134,11 +119,11 @@
             }
 
             .time-box span {
-                font-size: 3.5rem; /* Уменьшаем огромные цифры, чтобы они влезали на экран смартфона */
+                font-size: 3.5rem; 
             }
 
             .time-box p {
-                font-size: 0.9rem; /* Чуть уменьшаем подписи (days, hours...) */
+                font-size: 0.9rem; 
                 letter-spacing: 2px;
             }
         }
@@ -160,7 +145,6 @@
     </div>
 
     <script>
- 
         const countDownDate = new Date("Jun 22, 2026 0:0:0").getTime();
         
         let audioCtx;
@@ -215,20 +199,87 @@
                 document.getElementById("seconds").innerHTML = seconds < 10 ? "0" + seconds : seconds;
                 playTickSound();
             } else {
+                // ТАЙМЕР ЗАКОНЧИЛСЯ — ЗАПУСКАЕМ МУЗЫКУ
                 clearInterval(timerInterval); 
                 
+                const playlist = [
+                    { file: "music/t1.mp3", name: "AudioCutter_кс3" },
+                    { file: "music/t2.mp3", name: "Deadrxse - тайны(outro)" },
+                    { file: "music/t3.mp3", name: "getaway" },
+                    { file: "music/t4.mp3", name: "mawayyplugg - не могу спать4" },
+                    { file: "music/t5.mp3", name: "midagrape - iRokkout (prod threeangels & 1pooh4k)" },
+                    { file: "music/t6.mp3", name: "notfunny - roots (airspace)" },
+                    { file: "music/t7.mp3", name: "rawgeriot4rget" },
+                    { file: "music/t8.mp3", name: "redbenji - monotonniy" },
+                    { file: "music/t10.mp3", name: "T4RGET - 7 Cмертных Грехов(digitalrok) " },
+                    { file: "music/t11.mp3", name: "быстраямашинa mixBY sora!" },
+                ];
                 
-                const secretLink = "ТВОЙ_BASE64_КОД_ЗДЕСЬ";
-                const realLink = atob(secretLink);
+                let currentTrack = 0;
 
                 document.getElementById("timer").innerHTML = `
-                    <div class="video-container">
-                        <video autoplay controls playsinline>
-                            <source src="${realLink}" type="video/mp4">
-                            Ваш браузер не поддерживает видео.
-                        </video>
+                    <div style="width: 100%; max-width: 600px; margin: 0 auto;">
+                        <p id="track-name" class="glow" style="margin-bottom: 20px; font-size: 1.5rem; letter-spacing: 2px; text-transform: lowercase;">загрузка...</p>
+                        <canvas id="visualizer" style="width: 100%; height: 150px;"></canvas>
+                        <p class="glow" style="margin-top: 20px; font-size: 1rem; letter-spacing: 2px;">play: secret tape</p>
                     </div>
                 `;
+
+                const audio = new Audio();
+                const trackNameElement = document.getElementById("track-name");
+                
+                function loadTrack(index) {
+                    audio.src = playlist[index].file;
+                    trackNameElement.innerText = playlist[index].name;
+                    audio.play();
+                }
+
+                loadTrack(currentTrack);
+
+                audio.addEventListener('ended', () => {
+                    currentTrack++;
+                    if (currentTrack >= playlist.length) {
+                        currentTrack = 0; 
+                    }
+                    loadTrack(currentTrack);
+                });
+
+                // ПОДКЛЮЧАЕМ ЭКВАЛАЙЗЕР
+                const audioSource = audioCtx.createMediaElementSource(audio);
+                const analyser = audioCtx.createAnalyser();
+                audioSource.connect(analyser);
+                analyser.connect(audioCtx.destination);
+                
+                analyser.fftSize = 128; 
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+                
+                const canvas = document.getElementById("visualizer");
+                const canvasCtx = canvas.getContext("2d");
+                
+                canvas.width = canvas.offsetWidth;
+                canvas.height = canvas.offsetHeight;
+
+                function drawVisualizer() {
+                    requestAnimationFrame(drawVisualizer);
+                    analyser.getByteFrequencyData(dataArray);
+                    
+                    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    const barWidth = (canvas.width / bufferLength) * 2;
+                    let barHeight;
+                    let x = 0;
+                    
+                    for(let i = 0; i < bufferLength; i++) {
+                        barHeight = dataArray[i];
+                        
+                        canvasCtx.fillStyle = `rgba(255, 255, 255, ${barHeight / 255})`; 
+                        canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                        
+                        x += barWidth + 2; 
+                    }
+                }
+                drawVisualizer();
             }
         }
     </script>
