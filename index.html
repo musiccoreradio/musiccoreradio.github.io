@@ -151,6 +151,7 @@
         let audioCtx;
         let isTimerRunning = false;
         let timerInterval; 
+        let isRadioStarted = false; // <--- ПРЕДОХРАНИТЕЛЬ ОТ ДВОЙНОГО ЗАПУСКА ДОБАВЛЕН СЮДА
 
         function playTickSound() {
             if (!audioCtx) return;
@@ -202,6 +203,10 @@
             } else {
                 // ТАЙМЕР ЗАКОНЧИЛСЯ — ЗАПУСКАЕМ ОБЩЕЕ РАДИО
                 clearInterval(timerInterval); 
+                
+                // <--- ЕСЛИ РАДИО УЖЕ РАБОТАЕТ, ПРЕРЫВАЕМ ФУНКЦИЮ --->
+                if (isRadioStarted) return; 
+                isRadioStarted = true; 
                 
                 // === ТВОЙ ПЛЕЙЛИСТ С ДЛИТЕЛЬНОСТЬЮ В СЕКУНДАХ ===
                 // Пересчитай длительность каждого файла в секунды (duration)
@@ -273,7 +278,10 @@
                 loadTrack(currentTrackIndex, trackOffsetSeconds);
 
                 function tryPlay() {
-                    audio.play().catch(error => console.error("Playback blocked:", error));
+                    let playPromise = audio.play();
+                    if (playPromise !== undefined) {
+                        playPromise.catch(error => console.error("Playback blocked:", error));
+                    }
                 }
                 tryPlay();
 
