@@ -145,7 +145,8 @@
     </div>
 
     <script>
-        const countDownDate = new Date("Jun 22, 2026 0:0:00").getTime();
+        // ВРЕМЯ ИКС (Когда таймер кончится и начнется радио)
+        const countDownDate = new Date("Jun 22, 2026 0:0:0").getTime();
         
         let audioCtx;
         let isTimerRunning = false;
@@ -199,24 +200,51 @@
                 document.getElementById("seconds").innerHTML = seconds < 10 ? "0" + seconds : seconds;
                 playTickSound();
             } else {
-                // ТАЙМЕР ЗАКОНЧИЛСЯ — ЗАПУСКАЕМ МУЗЫКУ
+                // ТАЙМЕР ЗАКОНЧИЛСЯ — ЗАПУСКАЕМ ОБЩЕЕ РАДИО
                 clearInterval(timerInterval); 
                 
+                // === ТВОЙ ПЛЕЙЛИСТ С ДЛИТЕЛЬНОСТЬЮ В СЕКУНДАХ ===
+                // Пересчитай длительность каждого файла в секунды (duration)
                 const playlist = [
-                    { file: "music/t1.mp3", name: "LISN - Кидаю <3" },
-                    { file: "music/t2.mp3", name: "Deadrxse - тайны(outro)" },
-                    { file: "music/t3.mp3", name: "getaway" },
-                    { file: "music/t4.mp3", name: "mawayyplugg - не могу спать4" },
-                    { file: "music/t5.mp3", name: "midagrape - iRokkout (prod threeangels & 1pooh4k)" },
-                    { file: "music/t6.mp3", name: "notfunny - roots (airspace)" },
-                    { file: "music/t7.mp3", name: "rawgeriot4rget" },
-                    { file: "music/t8.mp3", name: "redbenji - monotonniy" },
-                    { file: "music/t10.mp3", name: "T4RGET - 7 Cмертных Грехов(digitalrok) " },
-                    { file: "music/t11.mp3", name: "быстраямашинa mixBY sora!" },
+                    { file: "music/t1.mp3", name: "LISN - Кидаю <3", duration: 108 },
+                    { file: "music/t2.mp3", name: "Deadrxse - тайны(outro)", duration: 160 },
+                    { file: "music/t3.mp3", name: "getaway", duration: 80 },
+                    { file: "music/t4.mp3", name: "mawayyplugg - не могу спать4", duration: 63 },
+                    { file: "music/t5.mp3", name: "midagrape - iRokkout (prod threeangels & 1pooh4k)", duration: 94 },
+                    { file: "music/t6.mp3", name: "notfunny - roots (airspace)", duration: 65 },
+                    { file: "music/t7.mp3", name: "rawgeriot4rget", duration: 122 },
+                    { file: "music/t8.mp3", name: "redbenji - monotonniy", duration: 99 },
+                    { file: "music/t10.mp3", name: "T4RGET - 7 Cмертных Грехов(digitalrok)", duration: 97 },
+                    { file: "music/t11.mp3", name: "быстраямашинa mixBY sora!", duration: 86 }
                 ];
+                // =================================================
+                // =================================================
                 
-                let currentTrack = 0;
+                // Считаем общую длину всего плейлиста в миллисекундах
+                const totalDurationMs = playlist.reduce((sum, track) => sum + (track.duration * 1000), 0);
+                
+                // Сколько времени прошло с момента завершения таймера
+                const timePassedMs = now - countDownDate;
+                
+                // Находим текущую точку внутри зацикленного плейлиста
+                const currentCyclePosMs = timePassedMs % totalDurationMs;
+                
+                let accumulatedTimeMs = 0;
+                let currentTrackIndex = 0;
+                let trackOffsetSeconds = 0;
+                
+                // Определяем, какой трек должен играть прямо сейчас и с какой секунды
+                for (let i = 0; i < playlist.length; i++) {
+                    const trackDurationMs = playlist[i].duration * 1000;
+                    if (currentCyclePosMs >= accumulatedTimeMs && currentCyclePosMs < accumulatedTimeMs + trackDurationMs) {
+                        currentTrackIndex = i;
+                        trackOffsetSeconds = (currentCyclePosMs - accumulatedTimeMs) / 1000;
+                        break;
+                    }
+                    accumulatedTimeMs += trackDurationMs;
+                }
 
+                // Перерисовываем интерфейс под радио
                 document.getElementById("timer").innerHTML = `
                     <div style="width: 100%; max-width: 600px; margin: 0 auto;">
                         <p id="track-name" class="glow" style="margin-bottom: 20px; font-size: 1.5rem; letter-spacing: 2px; text-transform: lowercase;">загрузка...</p>
@@ -225,60 +253,75 @@
                 `;
 
                 const audio = new Audio();
+                audio.crossOrigin = "anonymous"; // Важно для работы эквалайзера в будущем
                 const trackNameElement = document.getElementById("track-name");
                 
-                function loadTrack(index) {
+                function loadTrack(index, offsetSeconds = 0) {
                     audio.src = playlist[index].file;
                     trackNameElement.innerText = playlist[index].name;
-                    audio.play();
+                    
+                    // Если зашли посреди трека — перематываем на нужную секунду после загрузки аудио
+                    if (offsetSeconds > 0) {
+                        audio.addEventListener('loadedmetadata', function onMetadata() {
+                            audio.currentTime = offsetSeconds;
+                            audio.removeEventListener('loadedmetadata', onMetadata);
+                        });
+                    }
                 }
 
-                loadTrack(currentTrack);
+                // Запускаем вычисленный трек с правильной секунды
+                loadTrack(currentTrackIndex, trackOffsetSeconds);
 
+                function tryPlay() {
+                    audio.play().catch(error => console.error("Playback blocked:", error));
+                }
+                tryPlay();
+
+                // Когда трек заканчивается — просто включаем следующий по кругу
                 audio.addEventListener('ended', () => {
-                    currentTrack++;
-                    if (currentTrack >= playlist.length) {
-                        currentTrack = 0; 
-                    }
-                    loadTrack(currentTrack);
+                    currentTrackIndex = (currentTrackIndex + 1) % playlist.length;
+                    loadTrack(currentTrackIndex, 0);
+                    tryPlay();
                 });
 
                 // ПОДКЛЮЧАЕМ ЭКВАЛАЙЗЕР
-                const audioSource = audioCtx.createMediaElementSource(audio);
-                const analyser = audioCtx.createAnalyser();
-                audioSource.connect(analyser);
-                analyser.connect(audioCtx.destination);
-                
-                analyser.fftSize = 128; 
-                const bufferLength = analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-                
-                const canvas = document.getElementById("visualizer");
-                const canvasCtx = canvas.getContext("2d");
-                
-                canvas.width = canvas.offsetWidth;
-                canvas.height = canvas.offsetHeight;
+                try {
+                    const audioSource = audioCtx.createMediaElementSource(audio);
+                    const analyser = audioCtx.createAnalyser();
+                    audioSource.connect(analyser);
+                    analyser.connect(audioCtx.destination);
+                    
+                    analyser.fftSize = 128; 
+                    const bufferLength = analyser.frequencyBinCount;
+                    const dataArray = new Uint8Array(bufferLength);
+                    
+                    const canvas = document.getElementById("visualizer");
+                    const canvasCtx = canvas.getContext("2d");
+                    
+                    canvas.width = canvas.offsetWidth;
+                    canvas.height = canvas.offsetHeight;
 
-                function drawVisualizer() {
-                    requestAnimationFrame(drawVisualizer);
-                    analyser.getByteFrequencyData(dataArray);
-                    
-                    canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
-                    
-                    const barWidth = (canvas.width / bufferLength) * 2;
-                    let barHeight;
-                    let x = 0;
-                    
-                    for(let i = 0; i < bufferLength; i++) {
-                        barHeight = dataArray[i];
+                    function drawVisualizer() {
+                        requestAnimationFrame(drawVisualizer);
+                        analyser.getByteFrequencyData(dataArray);
                         
-                        canvasCtx.fillStyle = `rgba(255, 255, 255, ${barHeight / 255})`; 
-                        canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                        canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
                         
-                        x += barWidth + 2; 
+                        const barWidth = (canvas.width / bufferLength) * 2;
+                        let barHeight;
+                        let x = 0;
+                        
+                        for(let i = 0; i < bufferLength; i++) {
+                            barHeight = dataArray[i];
+                            canvasCtx.fillStyle = `rgba(255, 255, 255, ${barHeight / 255})`; 
+                            canvasCtx.fillRect(x, canvas.height - barHeight / 2, barWidth, barHeight / 2);
+                            x += barWidth + 2; 
+                        }
                     }
+                    drawVisualizer();
+                } catch (e) {
+                    console.error("Visualizer error:", e);
                 }
-                drawVisualizer();
             }
         }
     </script>
